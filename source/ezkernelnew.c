@@ -80,7 +80,6 @@
 
 
 #include "goomba.h"
-#include "pocketnes.h"
 
 u32 list_game_total;
 
@@ -167,7 +166,7 @@ u16 gl_color_MENU_btn = RGB(23, 23, 23);
 u16 gl_color_cheat_count = RGB(00, 31, 00);
 u16 gl_color_cheat_black = RGB(00, 00, 00);
 u16 gl_color_NORFULL = RGB(31, 00, 00);
-u16 gl_color_btn_clean = RGB(8, 8, 31);
+u16 gl_color_btn_clean = RGB(16, 0, 16);
 u16 SAV_info_buffer [0x200]EWRAM_BSS;
 //******************************************************************************
 void delay(u32 R0)
@@ -1832,11 +1831,6 @@ u32 IWRAM_CODE LoadEMU2PSRAM(TCHAR *filename,u32 is_EMU)
 			dmaCopy((void*)pReadCache,PSRAMBase_S98, goomba_gba_size);
 			rom_start_address = goomba_gba_size;
 			break;
-		case 3://nes
-			dmaCopy((void*)pocketnes_gba,pReadCache, pocketnes_gba_size);
-			dmaCopy((void*)pReadCache,PSRAMBase_S98, pocketnes_gba_size);
-			rom_start_address = pocketnes_gba_size+0x30;
-			break;
 		default:
 			res = f_open(&gfile, plugin, FA_READ);
 			if(res != FR_OK)
@@ -1882,23 +1876,6 @@ u32 IWRAM_CODE LoadEMU2PSRAM(TCHAR *filename,u32 is_EMU)
 	if(res == FR_OK)
 	{
 		filesize = f_size(&gfile);	
-		
-		if(is_EMU==3){//nes pocketnes_2013_07_01
-			*(vu32*)pReadCache = 0x45564153;
-			*((vu32*)pReadCache+1) = 0x0;
-			dmaCopy((void*)pReadCache,PSRAMBase_S98 + rom_start_address -0x30, 0x8);				
-			*(vu32*)pReadCache = filesize;
-			dmaCopy((void*)pReadCache,PSRAMBase_S98 + rom_start_address -0x10, 0x4);
-			
-			*(vu32*)pReadCache = 0x709346c0;//usr rtc
-			dmaCopy((void*)pReadCache,PSRAMBase_S98 + 0x1EA0, 0x4);	
-			
-			
-		}
-		else{
-			//use rtc, have been modify			
-		}
-
 			
 		Clear(60,160-15,120,15,gl_color_cheat_black,1);	
 		DrawHZText12(gl_writing,0,78,160-15,0x7fff,1);	
@@ -2114,11 +2091,7 @@ u32 Check_file_type(TCHAR *pfilename)
 	{
 		return 2;
 	}
-	else if(!strcasecmp(ext, "nes"))
-	{
-		return 3;
-	}
-
+	
 	return 0xff;
 }
 //---------------------------------------------------------------------------------
@@ -2190,25 +2163,33 @@ u8 Process_savefile(u32 is_EMU,TCHAR *pfilename,u32 gamefilesize,BYTE saveMODE)
 		return 2;
 	}
 	
+	
+	// BUG: not all file types are of equal length. sometimes they are two characters such as "gg" or "gb". we need to account for this
+	// it was easy to hardcode upstream but since we have more flexibility with pogoshell an elegant solution is needed
+	// we do it with strrchr so that we get the last instance of the period and then we append new characters to it.
+	
 	memcpy(savfilename,pfilename,100);
-	strlen8 = strlen(savfilename);		
+		
+	char* last_period = strrchr(savfilename, '.');
+	
 	if(is_EMU){
-		if(is_EMU ==2){//gb
-			(savfilename)[strlen8-2] = 'e';
-			(savfilename)[strlen8-1] = 's';
-			(savfilename)[strlen8-0] = 'v';		
-			(savfilename)[strlen8+1] = 0;	
-		}		
-		else{
-			(savfilename)[strlen8-3] = 'e';
-			(savfilename)[strlen8-2] = 's';
-			(savfilename)[strlen8-1] = 'v';
-		}	
+		
+		strcpy(last_period + 1, "esv");
+		
+		// if(is_EMU ==2){//gb
+		// 	(savfilename)[strlen8-2] = 'e';
+		// 	(savfilename)[strlen8-1] = 's';
+		// 	(savfilename)[strlen8-0] = 'v';		
+		// 	(savfilename)[strlen8+1] = 0;	
+		// }		
+		// else{
+		// 	(savfilename)[strlen8-3] = 'e';
+		// 	(savfilename)[strlen8-2] = 's';
+		// 	(savfilename)[strlen8-1] = 'v';
+		// }	
 	}
 	else{//gba		
-		(savfilename)[strlen8-3] = 's';
-		(savfilename)[strlen8-2] = 'a';
-		(savfilename)[strlen8-1] = 'v';
+		strcpy(last_period + 1, "sav");
 	}
 	//#ifdef DEBUG
 		//DEBUG_printf("sav %s",savfilename);
