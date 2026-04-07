@@ -20,7 +20,7 @@ include $(DEVKITARM)/gba_rules
 # the makefile is found
 #
 #---------------------------------------------------------------------------------
-TARGET		:= $(notdir $(CURDIR))
+TARGET		:= ezairkernel
 BUILD		:= build
 SOURCES		:= source source/ff16
 INCLUDES	:= include source/ff16 images
