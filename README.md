@@ -1,7 +1,10 @@
-###### FORKED FROM https://github.com/ez-flash/omega-de-kernel
+###### FORKED FROM https://github.com/ezflash-team/air-kernel
 
-# SimpleLight for EZ Flash Omega Definitive Edition
+# SimpleLight for EZ Flash Air
 ###### *If you're looking for SimpleLight for the **original** EZ Flash Omega, check here: https://github.com/Sterophonick/SimpleLight*
+###### *If you're looking for SimpleLight for the EZ Flash Omega **Definitive Edition**, check here: https://github.com/Sterophonick/omega-de-kernel*
+
+## Below is the original README, this may be out-of-date
 
 Hello all!
 
