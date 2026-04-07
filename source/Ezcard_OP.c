@@ -380,11 +380,9 @@ void IWRAM_CODE SPI_Disable(void)
 u16 IWRAM_CODE Read_FPGA_ver(void)
 {
 	u16 Read_SPI;
-	SetRompage_MODE(0x0000,SYSTEM_MODE_OS);//select flash0
 	SPI_Enable();	
 	Read_SPI =  *(vu16 *)0x9E00000; 
 	SPI_Disable();
-	SetRompage_MODE(0x0040,SYSTEM_MODE_GAME);//select flash0
 	return Read_SPI;
 }
 // --------------------------------------------------------------------
