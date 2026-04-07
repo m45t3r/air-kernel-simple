@@ -13,9 +13,12 @@
 
 //extern const unsigned char __attribute__((aligned(4)))gImage_SET[76800];
 extern u16 gl_select_lang;
-extern u16 gl_engine_sel;
+//extern u16 gl_engine_sel;
 extern u16 gl_show_Thumbnail;
-extern u16 gl_ingame_RTC_open_status;
+//extern u16 gl_ingame_RTC_open_status;
+extern u16 gl_auto_save_sel;
+extern u16 gl_ModeB_init;
+
 
 extern void CheckSwitch(void);
 extern void CheckLanguage(void);
@@ -34,26 +37,17 @@ u16 SET_info_buffer [0x200]EWRAM_BSS;
 #define	K_R		   (8)
 #define	K_L		 	 (9)
 
-u8* str_A      = (u8*)"   A  ";
-u8*	str_B		   = (u8*)"   B  ";
-u8* str_SELECT = (u8*)"Select";
-u8*	str_START	 = (u8*)"Start ";
-u8*	str_RIGHT	 = (u8*)"Right ";
-u8*	str_LEFT	 = (u8*)" Left ";
-u8* str_UP		 = (u8*)"  Up  ";
-u8*	str_DOWN	 = (u8*)" Down ";
-u8* str_R		   = (u8*)"   R  ";
-u8* str_L		   = (u8*)"   L  ";
 
 
 u16 v_reset;
-u16 v_rts;
-u16 v_sleep;
+
 u16 v_cheat;
 u16 language_sel;	
-u16 engine_sel;
-u8 edit_sleephotkey[3]={0};
-u8 edit_rtshotkey[3]={0};
+
+
+u16 auto_save_sel;
+u16 ModeB_INIT;
+
 
 //---------------------------------------------------------------------------------
 void Draw_select_icon(u32 X,u32 Y,u32 mode)
@@ -85,27 +79,24 @@ u32 Setting_window(void)
 
 	u32 addon_sel=2;
 	
-	u8 sleep_pos=0;
-	u8 rtshotkey_pos=0;
 	
-	u8 	engine_pos = 1;			
 	 
 	u8 datetime[7];
 	u8 edit_datetime[7]={0};
 	
-	u8 RTC_pos = 1;
 
-	u8 *str0;
-	u8 *str1;
-	u8 *str2;
-	
+	u8 lang_pos = 1;
+	u8 auto_save_pos = 1;	
+	u8 ModeB_pos = 2;
+		
 	
 	select = 0;
-	u32 y_offset = 24;
+	u32 y_offset = 34;
 	u32 set_offset = 1;
 	u32 x_offset = set_offset+9*6+3;
 	
 	u32 line_x = 17;
+	u32 line_MAX = 5;
 			
 	if(gl_select_lang == 0xE1E1)
 	{
@@ -116,20 +107,11 @@ u32 Setting_window(void)
 		language_sel = 1;
 	}	
 	v_reset = Read_SET_info(assress_v_reset);
-	v_rts = 	Read_SET_info(assress_v_rts);
-	v_sleep = Read_SET_info(assress_v_sleep);
+
 	v_cheat = Read_SET_info(assress_v_cheat);
 	if( (v_reset != 0x0) && (v_reset != 0x1))
 	{
 		v_reset = 0x0;
-	}
-	if( (v_rts != 0x0) && (v_rts != 0x1))
-	{
-		v_rts = 0x0;
-	}
-	if( (v_sleep != 0x0) && (v_sleep != 0x1))
-	{
-		v_sleep = 0x0;
 	}
 	if( (v_cheat != 0x0) && (v_cheat != 0x1))
 	{
@@ -137,8 +119,9 @@ u32 Setting_window(void)
 	}
 	
 
-	engine_sel = gl_engine_sel;
-
+	//engine_sel = gl_engine_sel;
+	auto_save_sel = gl_auto_save_sel;
+	ModeB_INIT = gl_ModeB_init;
 	
 	while(1)
 	{
@@ -158,71 +141,43 @@ u32 Setting_window(void)
 				sprintf(msg,"%s",gl_reset);
 				DrawHZText12(msg,0,x_offset+15,y_offset+line_x,(addon_sel==0)?gl_color_selected:gl_color_text,1);	
 			
-				Draw_select_icon(x_offset+12*6,y_offset+line_x,v_rts);
-				sprintf(msg,"%s",gl_rts);
-				DrawHZText12(msg,0,x_offset+12*6+15,y_offset+line_x,(addon_sel==1)?gl_color_selected:gl_color_text,1);
-				VBlankIntrWait();	
-				Draw_select_icon(x_offset,y_offset+line_x*2,v_sleep);
-				sprintf(msg,"%s",gl_sleep);
-				DrawHZText12(msg,0,x_offset+15,y_offset+line_x*2,(addon_sel==3)?gl_color_selected:gl_color_text,1);	
-				VBlankIntrWait();	
-				Draw_select_icon(x_offset+12*6,y_offset+line_x*2,v_cheat);
+				Draw_select_icon(x_offset+12*6,y_offset+line_x,v_cheat);
 				sprintf(msg,"%s",gl_cheat);
-				DrawHZText12(msg,0,x_offset+12*6+15,y_offset+line_x*2,(addon_sel==4)?gl_color_selected:gl_color_text,1);
+				DrawHZText12(msg,0,x_offset+12*6+15,y_offset+line_x,(addon_sel==1)?gl_color_selected:gl_color_text,1);
 			
 			//					
 			sprintf(msg,"%s",gl_language);
-			DrawHZText12(msg,0,set_offset,y_offset+line_x*3,gl_color_selected,1);			
-				Draw_select_icon(x_offset,y_offset+line_x*3,(language_sel == 0x0));
-				Draw_select_icon(x_offset+12*6,y_offset+line_x*3,(language_sel == 0x1));	
+			DrawHZText12(msg,0,set_offset,y_offset+line_x*2,gl_color_selected,1);			
+				Draw_select_icon(x_offset,y_offset+line_x*2,(language_sel == 0x0));
+				Draw_select_icon(x_offset+12*6,y_offset+line_x*2,(language_sel == 0x1));	
 				sprintf(msg,"%s",gl_en_lang);
-				DrawHZText12(msg,0,x_offset+15,y_offset+line_x*3,((language_sel==0)&&currstate&& (2== select))?gl_color_selected:gl_color_text,1);
+				DrawHZText12(msg,0,x_offset+15,y_offset+line_x*2,((language_sel==0)&&currstate&& (2== select))?gl_color_selected:gl_color_text,1);
 				sprintf(msg,"%s",gl_zh_lang);
-				DrawHZText12(msg,0,x_offset+12*6+15,y_offset+line_x*3,((language_sel==1)&&currstate&& (2== select))?gl_color_selected:gl_color_text,1);			
+				DrawHZText12(msg,0,x_offset+12*6+15,y_offset+line_x*2,((language_sel==1)&&currstate&& (2== select))?gl_color_selected:gl_color_text,1);			
 			
 			//
 			VBlankIntrWait();			
-			sprintf(msg,"%s",gl_engine);
-			DrawHZText12(msg,0,set_offset,y_offset+line_x*4,gl_color_selected,1);
-				Draw_select_icon(x_offset,y_offset+line_x*4,(engine_sel == 0x1));
-				sprintf(msg,"%s",gl_use_engine);
-				DrawHZText12(msg,0,x_offset+15,y_offset+line_x*4,(engine_pos==0)?gl_color_selected:gl_color_text,1);	
-			//	
-			
-			ClearWithBG((u16*)gImage_SET,set_offset, y_offset+line_x*5, 9*6, 13, 1);
-			ClearWithBG((u16*)gImage_SET,set_offset, y_offset+line_x*6, 9*6, 13, 1);
-			if( (v_rts==1) && (v_cheat == 0)  && (v_reset == 0)  && (v_sleep == 0)  ) {
-				sprintf(msg,"%s"," Save Key");
-				DrawHZText12(msg,0,set_offset,y_offset+line_x*5,gl_color_selected,1);	
-				
-				sprintf(msg,"%s"," Load Key");
-				DrawHZText12(msg,0,set_offset,y_offset+line_x*6,gl_color_selected,1);	
-			}
-			else{						
-				sprintf(msg,"%s",gl_hot_key);
-				DrawHZText12(msg,0,set_offset,y_offset+line_x*5,gl_color_selected,1);	
-				
-				sprintf(msg,"%s",gl_hot_key2);
-				DrawHZText12(msg,0,set_offset,y_offset+line_x*6,gl_color_selected,1);		
-			}
+			sprintf(msg,"%s",gl_save);
+			DrawHZText12(msg,0,set_offset,y_offset+line_x*3,gl_color_selected,1);
+				Draw_select_icon(x_offset,y_offset+line_x*3,(auto_save_sel == 0x1));
+				sprintf(msg,"%s",gl_auto_save);
+				DrawHZText12(msg,0,x_offset+15,y_offset+line_x*3,(auto_save_pos==0)?gl_color_selected:gl_color_text,1);	
 
-			//RTC
-			sprintf(msg,"%s",gl_ingameRTC);
-			DrawHZText12(msg,0,set_offset,y_offset+line_x*7,gl_color_selected,1);			
-				Draw_select_icon(x_offset,y_offset+line_x*7,(gl_ingame_RTC_open_status == 0x1));
-				//sprintf(msg,"%s",gl_offRTC_powersave);
-				ClearWithBG((u16*)gImage_SET,x_offset+15, y_offset+line_x*7, 6*6, 13, 1);
-				if(gl_ingame_RTC_open_status){
-					sprintf(msg,"%s",gl_enabled);
-				}
-				else {
-					sprintf(msg,"%s",gl_disabled);
-				}			
-				DrawHZText12(msg,0,x_offset+15,y_offset+line_x*7,(RTC_pos==0)?gl_color_selected:gl_color_text,1);	
-	
-	
+			//
+			sprintf(msg,"%s",gl_modeB_INITstr);
+			DrawHZText12(msg,0,set_offset,y_offset+line_x*4,gl_color_selected,1);
+			
+				Draw_select_icon(x_offset,y_offset+line_x*4,(ModeB_INIT == 0x0));
+				sprintf(msg,"%s",gl_modeB_RUMBLE);
+				DrawHZText12(msg,0,x_offset+15,y_offset+line_x*4,(ModeB_pos==0)?gl_color_selected:gl_color_text,1);									
+				Draw_select_icon(x_offset+12*6,y_offset+line_x*4,(ModeB_INIT == 0x1));
+				sprintf(msg,"%s",gl_modeB_LINK);
+				DrawHZText12(msg,0,x_offset+12*6+15,y_offset+line_x*4,(ModeB_pos==1)?gl_color_selected:gl_color_text,1);	
+					
+					
+					
 			u32 offsety;
-			for(line=0;line<7;line++)
+			for(line=0;line<line_MAX;line++)
 			{
 				if(Set_OK==1)
 				{
@@ -230,15 +185,13 @@ u32 Setting_window(void)
 						clean_color = gl_color_btn_clean;					
 					else if((line== select) && (1== select) && (addon_sel==2)) 
 						clean_color = gl_color_btn_clean;	
-					else if((line== select) && (3== select) && (engine_pos==1)) 
+					else if((line== select) && (2== select) && (lang_pos==1)) 
 						clean_color = gl_color_btn_clean;	
-					else if((line== select) && (4== select) && (sleep_pos==3)) 	
+					else if((line== select) && (3== select) && (auto_save_pos==1)) 
 						clean_color = gl_color_btn_clean;	
-					else if((line== select) && (5== select) && (rtshotkey_pos==3)) 	
-						clean_color = gl_color_btn_clean;		
-					else if((line== select) && (6== select) && (RTC_pos==1)) 
-						clean_color = gl_color_btn_clean;	
-						
+					else if((line== select) && (4== select) && (ModeB_pos==2)) 
+						clean_color = gl_color_btn_clean;							
+					
 					else 
 						clean_color = gl_color_MENU_btn;
 				}		
@@ -250,7 +203,7 @@ u32 Setting_window(void)
 						clean_color = gl_color_MENU_btn;
 				}	
 				offsety = y_offset + line*line_x;
-				if(line>1) offsety += line_x; 
+				//if(line>1) offsety += line_x; 
 					
 				Clear(202,offsety-2 ,30,14,clean_color,1);	
 				
@@ -301,104 +254,10 @@ u32 Setting_window(void)
 				DrawHZText12(msg,0,x_offset,y_offset,gl_color_text,1);	
 				VBlankIntrWait();
 
-				u16 read5 = Read_SET_info(assress_edit_sleephotkey_0); 
-				u16 read6 = Read_SET_info(assress_edit_sleephotkey_1); 
-				u16 read7 = Read_SET_info(assress_edit_sleephotkey_2); 
-				switch(read5)
-				{
-					case 0:str0 = str_A;break;
-					case 1:str0 = str_B;break;
-					case 2:str0 = str_SELECT;break;
-					case 3:str0 = str_START;break;
-					case 4:str0 = str_RIGHT;break;
-					case 5:str0 = str_LEFT;break;
-					case 6:str0 = str_UP;break;	
-					case 7:str0 = str_DOWN;break;
-					case 8:str0 = str_R;break;
-					case 9:str0 = str_L;break;
-					default:str0 = str_L;break;							
-				}	
-				switch(read6)
-				{
-					case 0:str1 = str_A;break;
-					case 1:str1 = str_B;break;
-					case 2:str1 = str_SELECT;break;
-					case 3:str1 = str_START;break;
-					case 4:str1 = str_RIGHT;break;
-					case 5:str1 = str_LEFT;break;
-					case 6:str1 = str_UP;break;	
-					case 7:str1 = str_DOWN;break;
-					case 8:str1 = str_R;break;
-					case 9:str1 = str_L;break;
-					default:str1 = str_R;break;										
-				}	
-				switch(read7)
-				{
-					case 0:str2 = str_A;break;
-					case 1:str2 = str_B;break;
-					case 2:str2 = str_SELECT;break;
-					case 3:str2 = str_START;break;
-					case 4:str2 = str_RIGHT;break;
-					case 5:str2 = str_LEFT;break;
-					case 6:str2 = str_UP;break;	
-					case 7:str2 = str_DOWN;break;
-					case 8:str2 = str_R;break;
-					case 9:str2 = str_L;break;	
-					default:str2 = str_SELECT;break;										
-				}	
-				sprintf(msg,"%s %s  %s",str0,str1,str2);//read from flash
-				DrawHZText12(msg,0,x_offset+10,y_offset+line_x*5,gl_color_text,1);
-				u16 read8 = Read_SET_info(assress_edit_rtshotkey_0); 
-				u16 read9 = Read_SET_info(assress_edit_rtshotkey_1); 
-				u16 read10 = Read_SET_info(assress_edit_rtshotkey_2); 
-				switch(read8)
-				{
-					case 0:str0 = str_A;break;
-					case 1:str0 = str_B;break;
-					case 2:str0 = str_SELECT;break;
-					case 3:str0 = str_START;break;
-					case 4:str0 = str_RIGHT;break;
-					case 5:str0 = str_LEFT;break;
-					case 6:str0 = str_UP;break;	
-					case 7:str0 = str_DOWN;break;
-					case 8:str0 = str_R;break;
-					case 9:str0 = str_L;break;		
-					default:str0 = str_L;break;							
-				}	
-				switch(read9)
-				{
-					case 0:str1 = str_A;break;
-					case 1:str1 = str_B;break;
-					case 2:str1 = str_SELECT;break;
-					case 3:str1 = str_START;break;
-					case 4:str1 = str_RIGHT;break;
-					case 5:str1 = str_LEFT;break;
-					case 6:str1 = str_UP;break;	
-					case 7:str1 = str_DOWN;break;
-					case 8:str1 = str_R;break;
-					case 9:str1 = str_L;break;	
-					default:str1 = str_R;break;									
-				}	
-				switch(read10)
-				{
-					case 0:str2 = str_A;break;
-					case 1:str2 = str_B;break;
-					case 2:str2 = str_SELECT;break;
-					case 3:str2 = str_START;break;
-					case 4:str2 = str_RIGHT;break;
-					case 5:str2 = str_LEFT;break;
-					case 6:str2 = str_UP;break;	
-					case 7:str2 = str_DOWN;break;
-					case 8:str2 = str_R;break;
-					case 9:str2 = str_L;break;	
-					default:str2 = str_START;break;									
-				}	
-				sprintf(msg,"%s %s  %s",str0,str1,str2);
-				DrawHZText12(msg,0,x_offset+10,y_offset+line_x*6,gl_color_text,1);
-				
+
 				re_show = 0;		
 				scanKeys();
-				keys = keysDown();
+				keys = keysUp();//keysDown();
 				if (keys & KEY_A) {//set
 					Set_OK_line = select;
 					Set_OK = 1;//!Set_OK;
@@ -418,22 +277,16 @@ u32 Setting_window(void)
 					}	
 					else if(select==3)
 					{								
-						engine_pos = 0;
+						auto_save_pos = 0;
 					}
-					else if(select==6)
-					{
-						RTC_pos = 0;
-					}
-					edit_sleephotkey[0] = (read5>10)?K_L:read5;
-					edit_sleephotkey[1] = (read6>10)?K_R:read6;
-					edit_sleephotkey[2] = (read7>10)?K_SELECT:read7;
-					edit_rtshotkey[0] = (read8>10)?K_L:read8;
-					edit_rtshotkey[1] = (read9>10)?K_R:read9;
-					edit_rtshotkey[2] = (read10>10)?K_START:read10;
+					else if(select==4)
+					{								
+						ModeB_pos = 0;
+					}				
 
 				}
 				else if (keys  & KEY_DOWN){  
-					if(select < 6){
+					if(select < (line_MAX-1)){
 						select++;		
 						re_show=1;
 					}
@@ -500,135 +353,12 @@ u32 Setting_window(void)
 							sprintf(msg,"20%02d/%02d/%02d %02d:%02d:%02d %s",edit_datetime[_YEAR],edit_datetime[_MONTH],edit_datetime[_DAY],edit_datetime[_HOUR],edit_datetime[_MIN],edit_datetime[_SEC] ,wkday);
 							DrawHZText12(msg,0,x_offset,y_offset,gl_color_text,1);	
 						}
-						else if(select ==4)
-						{
-							ClearWithBG((u16*)gImage_SET,x_offset, y_offset+line_x*5, 23*6, 13, 1);	
-							switch(sleep_pos)
-							{
-								case 0:clean_pos = x_offset+10;
-									break;
-								case 1:clean_pos = x_offset+10+6*6+6;
-									break;
-								case 2:clean_pos = x_offset+10+6*12+18;
-									break;
-															
-							}
-							if(	sleep_pos < 3)	
-								Clear(clean_pos,y_offset+line_x*5 ,36,13,gl_color_btn_clean,1);
-							
-							//DEBUG_printf("%x %x %x", edit_sleephotkey[0],edit_sleephotkey[1],edit_sleephotkey[2]);
-							switch(edit_sleephotkey[0])
-							{
-								case 0:str0 = str_A;break;
-								case 1:str0 = str_B;break;
-								case 2:str0 = str_SELECT;break;
-								case 3:str0 = str_START;break;
-								case 4:str0 = str_RIGHT;break;
-								case 5:str0 = str_LEFT;break;
-								case 6:str0 = str_UP;break;	
-								case 7:str0 = str_DOWN;break;
-								case 8:str0 = str_R;break;
-								case 9:str0 = str_L;break;
-								default:str0= str_L;break;						
-							}	
-							switch(edit_sleephotkey[1])
-							{
-								case 0:str1 = str_A;break;
-								case 1:str1 = str_B;break;
-								case 2:str1 = str_SELECT;break;
-								case 3:str1 = str_START;break;
-								case 4:str1 = str_RIGHT;break;
-								case 5:str1 = str_LEFT;break;
-								case 6:str1 = str_UP;break;	
-								case 7:str1 = str_DOWN;break;
-								case 8:str1 = str_R;break;
-								case 9:str1 = str_L;break;
-								default:str1= str_R;break;										
-							}	
-							switch(edit_sleephotkey[2])
-							{
-								case 0:str2 = str_A;break;
-								case 1:str2 = str_B;break;
-								case 2:str2 = str_SELECT;break;
-								case 3:str2 = str_START;break;
-								case 4:str2 = str_RIGHT;break;
-								case 5:str2 = str_LEFT;break;
-								case 6:str2 = str_UP;break;	
-								case 7:str2 = str_DOWN;break;
-								case 8:str2 = str_R;break;
-								case 9:str2 = str_L;break;	
-								default:str2= str_SELECT;break;							
-							}	
-							sprintf(msg,"%s %s  %s",str0,str1,str2);
-							DrawHZText12(msg,0,x_offset+10,y_offset+line_x*5,gl_color_text,1);
-						}
-						else if(select ==5)
-						{
-							ClearWithBG((u16*)gImage_SET,x_offset, y_offset+line_x*6, 23*6, 13, 1);	
-							switch(rtshotkey_pos)
-							{
-								case 0:clean_pos = x_offset+10;
-									break;
-								case 1:clean_pos = x_offset+10+6*6+6;
-									break;
-								case 2:clean_pos = x_offset+10+6*12+18;
-									break;
-															
-							}
-							if(	rtshotkey_pos < 3)	
-								Clear(clean_pos,y_offset+line_x*6 ,36,13,gl_color_btn_clean,1);
-							//DEBUG_printf("%x %x %x", edit_rtshotkey[0],edit_rtshotkey[1],edit_rtshotkey[2]);	
-							switch(edit_rtshotkey[0])
-							{
-								case 0:str0 = str_A;break;
-								case 1:str0 = str_B;break;
-								case 2:str0 = str_SELECT;break;
-								case 3:str0 = str_START;break;
-								case 4:str0 = str_RIGHT;break;
-								case 5:str0 = str_LEFT;break;
-								case 6:str0 = str_UP;break;	
-								case 7:str0 = str_DOWN;break;
-								case 8:str0 = str_R;break;
-								case 9:str0 = str_L;break;
-								default:str0= str_L;break;										
-							}	
-							switch(edit_rtshotkey[1])
-							{
-								case 0:str1 = str_A;break;
-								case 1:str1 = str_B;break;
-								case 2:str1 = str_SELECT;break;
-								case 3:str1 = str_START;break;
-								case 4:str1 = str_RIGHT;break;
-								case 5:str1 = str_LEFT;break;
-								case 6:str1 = str_UP;break;	
-								case 7:str1 = str_DOWN;break;
-								case 8:str1 = str_R;break;
-								case 9:str1 = str_L;break;
-								default:str1= str_R;break;												
-							}	
-							switch(edit_rtshotkey[2])
-							{
-								case 0:str2 = str_A;break;
-								case 1:str2 = str_B;break;
-								case 2:str2 = str_SELECT;break;
-								case 3:str2 = str_START;break;
-								case 4:str2 = str_RIGHT;break;
-								case 5:str2 = str_LEFT;break;
-								case 6:str2 = str_UP;break;	
-								case 7:str2 = str_DOWN;break;
-								case 8:str2 = str_R;break;
-								case 9:str2 = str_L;break;
-								default:str2= str_START;break;										
-							}	
-							sprintf(msg,"%s %s  %s",str0,str1,str2);
-							DrawHZText12(msg,0,x_offset+10,y_offset+line_x*6,gl_color_text,1);
-						}
 						
 						
 					}
 					re_show = 0;		
 					scanKeys();
-					keys = keysDown();
+					keys = keysUp();//keysDown();
 					u16 keysrepeat = keysDownRepeat();
 					if(keysrepeat & KEY_UP) {
 						if(select ==0){
@@ -675,129 +405,7 @@ u32 Setting_window(void)
 							}
 											
 						}
-						else if(select == 1){
-							if(addon_sel>2){
-								addon_sel -= 3;
-							}
-						}
-						else if(select ==4){
-							switch(sleep_pos) {
-								case 0:
-									if(edit_sleephotkey[0]==9) 
-										{edit_sleephotkey[0]=0;} 
-									else{edit_sleephotkey[0]++;}
-										
-									if(edit_sleephotkey[0]==edit_sleephotkey[1])
-									{
-										edit_sleephotkey[0]++;
-										if(edit_sleephotkey[0]==edit_sleephotkey[2])
-											edit_sleephotkey[0]++;
-									}		
-									else if(edit_sleephotkey[0]==edit_sleephotkey[2])
-									{
-										edit_sleephotkey[0]++;
-										if(edit_sleephotkey[0]==edit_sleephotkey[1])
-											edit_sleephotkey[0]++;
-									}						
-									break;
-								case 1:
-									if(edit_sleephotkey[1]==9) 
-										{edit_sleephotkey[1]=0;} 
-									else {edit_sleephotkey[1]++;}
-										
-									if(edit_sleephotkey[1]==edit_sleephotkey[0])
-									{
-										edit_sleephotkey[1]++;
-										if(edit_sleephotkey[1]==edit_sleephotkey[2])
-											edit_sleephotkey[1]++;
-									}	
-									else if(edit_sleephotkey[1]==edit_sleephotkey[2])
-									{
-										edit_sleephotkey[1]++;
-										if(edit_sleephotkey[1]==edit_sleephotkey[0])
-											edit_sleephotkey[1]++;
-									}	
-									break;
-								case 2:
-									if(edit_sleephotkey[2]==9) 
-										{edit_sleephotkey[2]=0;} 
-									else {edit_sleephotkey[2]++;}
-										
-									if(edit_sleephotkey[2]==edit_sleephotkey[0])
-									{
-										edit_sleephotkey[2]++;
-										if(edit_sleephotkey[2]==edit_sleephotkey[1])
-											edit_sleephotkey[2]++;
-									}	
-									else if(edit_sleephotkey[2]==edit_sleephotkey[1])
-									{
-										edit_sleephotkey[2]++;
-										if(edit_sleephotkey[2]==edit_sleephotkey[0])
-											edit_sleephotkey[2]++;
-									}			
-									break;
-							}
-						}
-						else if(select ==5){
-							switch(rtshotkey_pos) {
-								case 0:
-									if(edit_rtshotkey[0]==9) 
-										{edit_rtshotkey[0]=0;} 
-									else {edit_rtshotkey[0]++;}
-										
-									if(edit_rtshotkey[0]==edit_rtshotkey[1])
-									{
-										edit_rtshotkey[0]++;
-										if(edit_rtshotkey[0]==edit_rtshotkey[2])
-											edit_rtshotkey[0]++;
-									}		
-									else if(edit_rtshotkey[0]==edit_rtshotkey[2])
-									{
-										edit_rtshotkey[0]++;
-										if(edit_rtshotkey[0]==edit_rtshotkey[1])
-											edit_rtshotkey[0]++;
-									}	
-									break;
-								case 1:
-									if(edit_rtshotkey[1]==9) 
-										{edit_rtshotkey[1]=0;} 
-									else {edit_rtshotkey[1]++;}
-										
-									if(edit_rtshotkey[1]==edit_rtshotkey[0])
-									{
-										edit_rtshotkey[1]++;
-										if(edit_rtshotkey[1]==edit_rtshotkey[2])
-											edit_rtshotkey[1]++;
-									}	
-									else if(edit_rtshotkey[1]==edit_rtshotkey[2])
-									{
-										edit_rtshotkey[1]++;
-										if(edit_rtshotkey[1]==edit_rtshotkey[0])
-											edit_rtshotkey[1]++;
-									}	
-									break;
-								case 2:
-									if(edit_rtshotkey[2]==9) 
-										{edit_rtshotkey[2]=0;} 
-									else {edit_rtshotkey[2]++;}
-										
-									if(edit_rtshotkey[2]==edit_rtshotkey[0])
-									{
-										edit_rtshotkey[2]++;
-										if(edit_rtshotkey[2]==edit_rtshotkey[1])
-											edit_rtshotkey[2]++;
-									}	
-									else if(edit_rtshotkey[2]==edit_rtshotkey[1])
-									{
-										edit_rtshotkey[2]++;
-										if(edit_rtshotkey[2]==edit_rtshotkey[0])
-											edit_rtshotkey[2]++;
-									}	
-									break;
-							}
-						}					
-						
-						
+					
 						re_show = 1;								
 					} else if(keysrepeat & KEY_DOWN) {
 						if(select ==0){
@@ -864,164 +472,7 @@ u32 Setting_window(void)
 							
 							}
 						}
-						else if(select == 1){
-							if(addon_sel<2){
-								addon_sel += 3;
-							}
-						}
-						else if(select == 4){
-							switch(sleep_pos) {
-								case 0:
-									if(edit_sleephotkey[0]==0) 
-										{edit_sleephotkey[0]=9;} 
-									else{	edit_sleephotkey[0]--;}
-										
-										
-									if(edit_sleephotkey[0]==edit_sleephotkey[1])
-									{
-										if(edit_sleephotkey[0]==0) 
-											{edit_sleephotkey[0]=9;} 
-										else{	edit_sleephotkey[0]--;}
-											
-										if(edit_sleephotkey[0]==edit_sleephotkey[2])
-											edit_sleephotkey[0]--;
-									}		
-									else if(edit_sleephotkey[0]==edit_sleephotkey[2])
-									{
-										if(edit_sleephotkey[0]==0) 
-											{edit_sleephotkey[0]=9;} 
-										else{	edit_sleephotkey[0]--;}
-											
-										if(edit_sleephotkey[0]==edit_sleephotkey[1])
-											edit_sleephotkey[0]--;
-									}																			
-									break;
-								case 1:
-									if(edit_sleephotkey[1]==0) 
-										{edit_sleephotkey[1]=9;} 
-									else {edit_sleephotkey[1]--;}
-									if(edit_sleephotkey[1]==edit_sleephotkey[0])
-									{
-										if(edit_sleephotkey[1]==0) 
-											{edit_sleephotkey[1]=9;} 
-										else{	edit_sleephotkey[1]--;}
-											
-										if(edit_sleephotkey[1]==edit_sleephotkey[2])
-											edit_sleephotkey[1]--;
-									}	
-									else if(edit_sleephotkey[1]==edit_sleephotkey[2])
-									{
-										if(edit_sleephotkey[1]==0) 
-											{edit_sleephotkey[1]=9;} 
-										else{	edit_sleephotkey[1]--;}
-											
-										if(edit_sleephotkey[1]==edit_sleephotkey[0])
-											edit_sleephotkey[1]--;
-									}																					
-									break;
-								case 2:
-									if(edit_sleephotkey[2]==0) 
-										{edit_sleephotkey[2]=9;} 
-									else{edit_sleephotkey[2]--;}
-										
-									if(edit_sleephotkey[2]==edit_sleephotkey[0])
-									{
-										if(edit_sleephotkey[2]==0) 
-											{edit_sleephotkey[2]=9;} 
-										else{	edit_sleephotkey[2]--;}
-											
-										if(edit_sleephotkey[2]==edit_sleephotkey[1])
-											edit_sleephotkey[2]--;
-									}	
-									else if(edit_sleephotkey[2]==edit_sleephotkey[1])
-									{
-										if(edit_sleephotkey[2]==0) 
-											{edit_sleephotkey[2]=9;} 
-										else{	edit_sleephotkey[2]--;}
-											
-										if(edit_sleephotkey[2]==edit_sleephotkey[0])
-											edit_sleephotkey[2]--;
-									}														
-									break;
-							}
-						}
-						else if(select == 5){
-							switch(rtshotkey_pos) {
-								case 0:
-									if(edit_rtshotkey[0]==0) 
-										{edit_rtshotkey[0]=9;} 
-									else{edit_rtshotkey[0]--;}	
-										
-									if(edit_rtshotkey[0]==edit_rtshotkey[1])
-									{
-										if(edit_rtshotkey[0]==0) 
-											{edit_rtshotkey[0]=9;} 
-										else{	edit_rtshotkey[0]--;}
-											
-										if(edit_rtshotkey[0]==edit_rtshotkey[2])
-											edit_rtshotkey[0]--;
-									}		
-									else if(edit_rtshotkey[0]==edit_rtshotkey[2])
-									{
-										if(edit_rtshotkey[0]==0) 
-											{edit_rtshotkey[0]=9;} 
-										else{	edit_rtshotkey[0]--;}
-											
-										if(edit_rtshotkey[0]==edit_rtshotkey[1])
-											edit_rtshotkey[0]--;
-									}																				
-									break;
-								case 1:
-									if(edit_rtshotkey[1]==0) 
-										{edit_rtshotkey[1]=9;} 
-									else 
-										{edit_rtshotkey[1]--;}
-											
-									if(edit_rtshotkey[1]==edit_rtshotkey[0])
-									{
-										if(edit_rtshotkey[1]==0) 
-											{edit_rtshotkey[1]=9;} 
-										else{	edit_rtshotkey[1]--;}
-											
-										if(edit_rtshotkey[1]==edit_rtshotkey[2])
-											edit_rtshotkey[1]--;
-									}	
-									else if(edit_rtshotkey[1]==edit_rtshotkey[2])
-									{
-										if(edit_rtshotkey[1]==0) 
-											{edit_rtshotkey[1]=9;} 
-										else{	edit_rtshotkey[1]--;}
-											
-										if(edit_rtshotkey[1]==edit_rtshotkey[0])
-											edit_rtshotkey[1]--;
-									}									
-									break;
-								case 2:
-									if(edit_rtshotkey[2]==0) 
-										{edit_rtshotkey[2]=9;} 
-									else{edit_rtshotkey[2]--;}
-										
-									if(edit_rtshotkey[2]==edit_rtshotkey[0])
-									{
-										if(edit_rtshotkey[2]==0) 
-											{edit_rtshotkey[2]=9;} 
-										else{	edit_rtshotkey[2]--;}
-											
-										if(edit_rtshotkey[2]==edit_rtshotkey[1])
-											edit_rtshotkey[2]--;
-									}	
-									else if(edit_rtshotkey[2]==edit_rtshotkey[1])
-									{
-										if(edit_rtshotkey[2]==0) 
-											{edit_rtshotkey[2]=9;} 
-										else{	edit_rtshotkey[2]--;}
-											
-										if(edit_rtshotkey[2]==edit_rtshotkey[0])
-											edit_rtshotkey[2]--;
-									}																	
-									break;
-							}
-						}
+
 						re_show = 1;	
 					} else if(keys & KEY_RIGHT) {
 						if(select ==0){
@@ -1033,10 +484,7 @@ u32 Setting_window(void)
 						}
 						else if(select ==1) 
 						{
-							if(addon_sel==3){
-								addon_sel ++;
-							}
-							else if(addon_sel<2){
+							if(addon_sel<2){
 								addon_sel ++;
 							}
 						}
@@ -1044,26 +492,17 @@ u32 Setting_window(void)
 						{
 							language_sel = 1;								
 						}
-						else if(select ==3)
+						else if(select ==3)//auto save
 						{
-								engine_pos = 1;
+							auto_save_pos = 1;
 						}
 						else if	(select ==4)
 						{
-							if(sleep_pos<3){
-								sleep_pos ++;
+							if(ModeB_pos<2){
+								ModeB_pos ++;
 							}
 						}
-						else if	(select ==5) 
-						{
-							if(rtshotkey_pos<3){
-								rtshotkey_pos ++;
-							}
-						}
-						else if(select ==6)
-						{
-								RTC_pos = 1;
-						}
+
 						re_show = 1;	
 					}
 					else if(keys & KEY_LEFT) {
@@ -1076,10 +515,7 @@ u32 Setting_window(void)
 						}
 						else if(select ==1) 
 						{
-							if(addon_sel==4){
-								addon_sel --;
-							}							
-							else if((addon_sel>0)&&(addon_sel<3)){
+							if(addon_sel){
 								addon_sel --;
 							}		
 						}
@@ -1087,26 +523,17 @@ u32 Setting_window(void)
 						{
 								language_sel = 0;
 						}						
-						else if(select ==3)
+						else if(select ==3)//auto save
 						{
-								engine_pos = 0;
+								auto_save_pos = 0;
 						}
 						else if(select ==4)	
 						{
-							if(sleep_pos){
-								sleep_pos--;
-							}	
+							if(ModeB_pos){
+								ModeB_pos--;
+							}
 						}	
-						else if(select ==5)	
-						{
-							if(rtshotkey_pos){
-								rtshotkey_pos--;
-							}		
-						}	
-						else if(select ==6)
-						{
-								RTC_pos = 0;
-						}
+
 						re_show = 1;	
 					} else if(keys & KEY_A) {
 						if((0== select) && (edit_pos==7)){
@@ -1121,9 +548,7 @@ u32 Setting_window(void)
 							switch(addon_sel)
 							{
 								case 0:v_reset = !v_reset;break;
-								case 1:v_rts   = !v_rts;break;
-								case 3:v_sleep = !v_sleep;break;
-								case 4:v_cheat = !v_cheat;break;	
+								case 1:v_cheat = !v_cheat;break;	
 								case 2:
 									{
 										save_setw_info();
@@ -1142,50 +567,38 @@ u32 Setting_window(void)
 						}
 						else if(select == 3) 
 						{
-							switch(engine_pos)
+							switch(auto_save_pos)
 							{
-								case 0:engine_sel = !engine_sel;break;
+								case 0:auto_save_sel = !auto_save_sel;break;
 								case 1:
 									{
 										save_setw_info();
 										Set_OK = 0;	
-										gl_engine_sel = Read_SET_info(assress_engine_sel);
-										if( (gl_engine_sel != 0x0) && (gl_engine_sel != 0x1))
+										gl_auto_save_sel = Read_SET_info(assress_auto_save_sel);
+										if( (gl_auto_save_sel != 0x0) && (gl_auto_save_sel != 0x1))
 										{
-											gl_engine_sel = 0x1;
+											gl_auto_save_sel = 0x1;
 										}
 										break;							
 									}
 							}	
 						}
-						else if((select == 4)  && (sleep_pos==3))
+						else if(select == 4) 
 						{
-							save_setw_info();
-							Set_OK = 0;
-						}			
-						else if((select == 5)  && (rtshotkey_pos==3))
-						{
-							save_setw_info();
-							Set_OK = 0;	
-						}			
-						else if(select == 6) 
-						{
-							switch(RTC_pos)
+							switch(ModeB_pos)
 							{
-								case 0:gl_ingame_RTC_open_status = !gl_ingame_RTC_open_status;break;
-								case 1:
+								case 0:ModeB_INIT = 0;break;
+								case 1:ModeB_INIT = 1;break;
+								//case 2:ModeB_INIT = 2;break;	
+								case 2:
 									{
 										save_setw_info();
 										Set_OK = 0;	
-										gl_ingame_RTC_open_status = Read_SET_info(assress_ingame_RTC_open_status);
-										if( (gl_ingame_RTC_open_status != 0x0) && (gl_ingame_RTC_open_status != 0x1))
-										{
-											gl_ingame_RTC_open_status = 0x1;
-										}
-										break;							
+										break;
 									}
-							}	
-						}			
+							}
+						}		
+		
 						re_show = 1;
 					}
 				break	;			
@@ -1195,35 +608,28 @@ u32 Setting_window(void)
 //---------------------------------------------------------------------------------
 void save_setw_info(void)
 {
-	u32 address;	
+	u32 address;
+		
 	if(language_sel == 0x0){//english						
 		SET_info_buffer[assress_language] = 0xE1E1;
 	}
 	else{					
 		SET_info_buffer[assress_language] = 0xE2E2;
-	}
+	}	
+	
 	SET_info_buffer[assress_v_reset] = v_reset;
-	SET_info_buffer[assress_v_rts] = v_rts;
-	SET_info_buffer[assress_v_sleep] = v_sleep;
 	SET_info_buffer[assress_v_cheat] = v_cheat;	
 	
-	SET_info_buffer[assress_edit_sleephotkey_0] = edit_sleephotkey[0];
-	SET_info_buffer[assress_edit_sleephotkey_1] = edit_sleephotkey[1];	
-	SET_info_buffer[assress_edit_sleephotkey_2] = edit_sleephotkey[2];	
-	SET_info_buffer[assress_edit_rtshotkey_0] = edit_rtshotkey[0];
-	SET_info_buffer[assress_edit_rtshotkey_1] = edit_rtshotkey[1];	
-	SET_info_buffer[assress_edit_rtshotkey_2] = edit_rtshotkey[2];	
+	SET_info_buffer[assress_show_Thumbnail] = gl_show_Thumbnail;		
 	
-	SET_info_buffer[assress_engine_sel] = engine_sel;	
+	SET_info_buffer[assress_auto_save_sel] = auto_save_sel;
+	SET_info_buffer[assress_ModeB_INIT] = ModeB_INIT;	
 	
-	SET_info_buffer[assress_show_Thumbnail] = gl_show_Thumbnail;	
-	
-	SET_info_buffer[assress_ingame_RTC_open_status] = gl_ingame_RTC_open_status;
 
-	for(address=14;address < assress_max;address++)
+	for(address=60;address < assress_max;address++)
 	{
 		SET_info_buffer[address] = Read_SET_info(address);
-	}				
+	}		
 	//save to nor 
 	Save_SET_info(SET_info_buffer,0x200);
 }

@@ -2,7 +2,6 @@
 #include <gba_interrupt.h>
 #include <gba_systemcalls.h>
 #include <gba_input.h>
-#include <gba_compression.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <gba_base.h>
@@ -13,19 +12,9 @@
 #include "ezkernel.h"
 #include "draw.h"
 #include "Ezcard_OP.h"
-
-//#include "fw.h"
-
-#include "lang.h"
-
-const u32 image_bin_size2=952016;
-
-
-extern unsigned char ASC_DATA_OLD[];
+#include "deair_FW3.h"
 
 extern u32 FAT_table_buffer[FAT_table_size/4]EWRAM_BSS;
-
-extern u32 key_L;
 
 extern FIL gfile;
 // --------------------------------------------------------------------
@@ -93,9 +82,10 @@ u32 IWRAM_CODE Read_SD_sectors(u32 address,u16 count,u8* SDbuffer)
 	u16 blocks;
 	u32 res;
 	u32 times=2;
-	for(i=0;i<count;i+=4)
+	u16 maxsec=4;
+	for(i=0;i<count;i+=maxsec)
 	{
-		blocks = (count-i>4)?4:(count-i);
+		blocks = (count-i>maxsec)?maxsec:(count-i);
 			
 	read_again:
 		*(vu16 *)0x9fe0000 = 0xd200;
@@ -154,19 +144,8 @@ u32 IWRAM_CODE Write_SD_sectors(u32 address,u16 count, const u8* SDbuffer)
 	return 0;
 }
 // --------------------------------------------------------------------
-u16 IWRAM_CODE Read_S71NOR_ID()
-{
-	u16 ID1;
-	*((vu16 *)(FlashBase_S71)) = 0xF0;	
-	*((vu16 *)(FlashBase_S71+0x555*2)) = 0xAA;
-	*((vu16 *)(FlashBase_S71+0x2AA*2)) = 0x55;
-	*((vu16 *)(FlashBase_S71+0x555*2)) = 0x90;
-	ID1 = *((vu16 *)(FlashBase_S71+0xE*2));
-	*((vu16 *)(FlashBase_S71)) = 0xF0;
-	return ID1;
-}	
 // --------------------------------------------------------------------
-u16 Read_S98NOR_ID()
+u16 IWRAM_CODE Read_S98NOR_ID()
 {
 	u16 ID1;
 	*((vu16 *)(FlashBase_S98)) = 0xF0 ;	
@@ -174,16 +153,18 @@ u16 Read_S98NOR_ID()
 	*((vu16 *)(FlashBase_S98+0x2AA*2)) = 0x55;
 	*((vu16 *)(FlashBase_S98+0x555*2)) = 0x90;
 	ID1 = *((vu16 *)(FlashBase_S98+0xE*2));
+	*((vu16 *)(FlashBase_S98)) = 0xF0 ;	
 	return ID1;
 }	
 // --------------------------------------------------------------------
-void IWRAM_CODE SetRompage(u16 page)
+// --------------------------------------------------------------------
+void IWRAM_CODE SetRompage_MODE(u16 page,u16 MODE)
 {
 	*(vu16 *)0x9fe0000 = 0xd200;
 	*(vu16 *)0x8000000 = 0x1500;
 	*(vu16 *)0x8020000 = 0xd200;
 	*(vu16 *)0x8040000 = 0x1500;
-	*(vu16 *)0x9880000 = page;//C4
+	*(vu16 *)0x9880000 = page+MODE;//C4
 	*(vu16 *)0x9fc0000 = 0x1500;
 }
 // --------------------------------------------------------------------
@@ -265,37 +246,12 @@ extern u16 gl_ingame_RTC_open_status;
 void IWRAM_CODE SetRompageWithHardReset(u16 page,u32 bootmode)
 {
 	Set_RTC_status(gl_ingame_RTC_open_status);
-	SetRompage(page);
-	RegisterRamReset(RESET_PALETTE| RESET_VRAM|RESET_OAM |RESET_SIO | RESET_SOUND | RESET_OTHER);
-	if(bootmode==1) {
-		if(key_L)
-			SoftReset_now();
-		else
-			HardReset();
-	} else if (bootmode==2 || bootmode==4) {
-		int i;
-		//Clear exram up to pogoshell arg
-		u32 *p = (u32*)(0x02000000);
-		for(i=0;i<0xfefe;i++)
-			p[i]=0;
-		// Copy plugin to EWRAM using pogoshell arg's size
-		if (bootmode==2)
-			dmaCopy((u8*)(0x08000000),(u8*)(0x02000000), *(u32 *)(0x0203fbfc) & 0x7ffffff);
-		else if (bootmode==4)
-			LZ77UnCompWram((u8*)(0x08000000),(u8*)(0x02000000));
-		RegisterRamReset(0xfc);
-		((void(*)(void))0x02000000)();
+	SetRompage_MODE(page,SYSTEM_MODE_GAME);
+	RegisterRamReset(RESET_EWRAM|RESET_PALETTE| RESET_VRAM|RESET_OAM |RESET_SIO | RESET_SOUND | RESET_OTHER);
+	if(bootmode==1){
+		HardReset();
 	}
-	else if (bootmode == 3) {
-		int i;
-		//Clear exram up to pogoshell arg
-		u32 *p = (u32*)(0x02000000);
-		for(i=0;i<0xfefe;i++)
-			p[i]=0;
-		//SoftReset_now(0,0x100);
-		SoftReset_now();
-	}
-	else {
+	else{
 		SoftReset_now();
 	}
 }
@@ -326,103 +282,79 @@ void IWRAM_CODE Bank_Switching(u8 bank)
 	*((vu8 *)(SAVE_sram_base+0x0000)) = bank ;	
 }
 // --------------------------------------------------------------------
-void IWRAM_CODE Save_info(u32 info_offset, u16 * info_buffer,u32 buffersize)
+void IWRAM_CODE Save_info_2_NOR(u32 info_offset, u16 * info_buffer,u32 buffersize)
 {
 	u32 offset;
 	vu16* buf = (vu16*)info_buffer ;
 	register u32 loopwrite ;
 	vu16 v1,v2;
+
+	*((vu16 *)(FlashBase_S98)) = 0xF0 ;	
 	
-	u16 S71id = Read_S71NOR_ID();
-	*((vu16 *)(FlashBase_S71)) = 0xF0 ;	
+	offset= info_offset;//0x780000 0x7A0000/0x7C0000 ; S98 128KB /sec
 	
-	offset= info_offset;//0x7A0000/0x7B0000 ;
-	
-	*((vu16 *)(FlashBase_S71+0x555*2)) = 0xAA ;
-	*((vu16 *)(FlashBase_S71+0x2AA*2)) = 0x55 ;
-	*((vu16 *)(FlashBase_S71+0x555*2)) = 0x80 ;
-	*((vu16 *)(FlashBase_S71+0x555*2)) = 0xAA ;
-	*((vu16 *)(FlashBase_S71+0x2AA*2)) = 0x55 ;	
-	*((vu16 *)(FlashBase_S71+offset)) = 0x30 ;//erase
+	*((vu16 *)(FlashBase_S98+0x555*2)) = 0xAA ;
+	*((vu16 *)(FlashBase_S98+0x2AA*2)) = 0x55 ;
+	*((vu16 *)(FlashBase_S98+0x555*2)) = 0x80 ;
+	*((vu16 *)(FlashBase_S98+0x555*2)) = 0xAA ;
+	*((vu16 *)(FlashBase_S98+0x2AA*2)) = 0x55 ;	
+	*((vu16 *)(FlashBase_S98+offset)) = 0x30 ;//erase
 	do
 	{
-		v1 = *((vu16 *)(FlashBase_S71+offset)) ;
-		v2 = *((vu16 *)(FlashBase_S71+offset)) ;
+		v1 = *((vu16 *)(FlashBase_S98+offset)) ;
+		v2 = *((vu16 *)(FlashBase_S98+offset)) ;
 	}while(v1!=v2);		
 	//erase finish
-	if(S71id == 0x2202) //PL064
+
+	for(loopwrite=0;loopwrite<buffersize/2;loopwrite++)
 	{
-		for(loopwrite=0;loopwrite<buffersize/2;loopwrite++)
+		*((vu16 *)(FlashBase_S98+0x555*2)) = 0xAA ;
+		*((vu16 *)(FlashBase_S98+0x2AA*2)) = 0x55 ;
+		*((vu16 *)(FlashBase_S98+0x555*2)) = 0xA0 ;
+		*((vu16 *)(FlashBase_S98+offset+loopwrite*2)) = buf[loopwrite];
+		do
 		{
-			*((vu16 *)(FlashBase_S71+0x555*2)) = 0xAA ;
-			*((vu16 *)(FlashBase_S71+0x2AA*2)) = 0x55 ;
-			*((vu16 *)(FlashBase_S71+0x555*2)) = 0xA0 ;
-			*((vu16 *)(FlashBase_S71+offset+loopwrite*2)) = buf[loopwrite];
-			do
-			{
-				v1 = *((vu16 *)(FlashBase_S71+offset+loopwrite*2)) ;
-				v2 = *((vu16 *)(FlashBase_S71+offset+loopwrite*2)) ;
-			}while(v1!=v2);
-		}			
-	}
-	else { //GL064			
-		u32 i;
-		for(loopwrite=0;loopwrite<(buffersize/32);loopwrite++)
-		{
-			*((vu16 *)(FlashBase_S71+0x555*2)) = 0xAA;
-			*((vu16 *)(FlashBase_S71+0x2AA*2)) = 0x55;
-			*((vu16 *)(FlashBase_S71+offset+loopwrite*32)) = 0x25;
-			*((vu16 *)(FlashBase_S71+offset+loopwrite*32)) = 15;
-			for(i=0;i<=15;i++)
-			{
-				*((vu16 *)(FlashBase_S71+offset+loopwrite*32 +2*i )) = buf[loopwrite*16+i];
-			}	
-			*((vu16 *)(FlashBase_S71+offset+loopwrite*32)) = 0x29;
+			v1 = *((vu16 *)(FlashBase_S98+offset+loopwrite*2)) ;
+			v2 = *((vu16 *)(FlashBase_S98+offset+loopwrite*2)) ;
+		}while(v1!=v2);
+	}			
 
-			do
-			{
-				v1 = *((vu16 *)(FlashBase_S71+offset+loopwrite*32));
-				v2 = *((vu16 *)(FlashBase_S71+offset+loopwrite*32));
-			}while(v1!=v2);
-		}
-	}
-
-	*((vu16 *)(FlashBase_S71)) = 0xF0;	
+	*((vu16 *)(FlashBase_S98)) = 0xF0;	
 }
 
 // --------------------------------------------------------------------
 void IWRAM_CODE Save_sav_info(u16 * SAV_info_buffer,u32 buffersize)
 {
-	Save_info(SAVE_info_offset, SAV_info_buffer,buffersize);
+	Save_info_2_NOR(SAVE_info_offset, SAV_info_buffer,buffersize);
 }
 // --------------------------------------------------------------------
-void IWRAM_CODE Save_NOR_info(u16 * NOR_info_buffer,u32 buffersize)
+void IWRAM_CODE Save_NORgame_info(u16 * NOR_info_buffer,u32 buffersize)
 {
-	Save_info(NOR_info_offset, NOR_info_buffer,buffersize);
+	Save_info_2_NOR(NOR_info_offset, NOR_info_buffer,buffersize);
 }
 // --------------------------------------------------------------------
 void IWRAM_CODE Save_SET_info(u16 * SET_info_buffer,u32 buffersize)
 {
-	Save_info(SET_info_offset, SET_info_buffer,buffersize);
+	Save_info_2_NOR(SET_info_offset, SET_info_buffer,buffersize);
 }
 // --------------------------------------------------------------------
-void IWRAM_CODE Read_NOR_info()
+void IWRAM_CODE Read_NORgame_info()
 {
 	register u32 loopwrite ;
 	for(loopwrite=0;loopwrite<sizeof(FM_NOR_FS)*0x40;loopwrite++)
 	{
-		((u16*)pNorFS)[loopwrite] = *((vu16 *)(FlashBase_S71+NOR_info_offset+loopwrite*2));
+		((u16*)pNorFS)[loopwrite] = *((vu16 *)(FlashBase_S98+NOR_info_offset+loopwrite*2));
 	}
 }
 // --------------------------------------------------------------------
 u16 IWRAM_CODE Read_SET_info(u32 offset)
 {
-	return *((vu16 *)(FlashBase_S71+SET_info_offset+offset*2));
+	return *((vu16 *)(FlashBase_S98+SET_info_offset+offset*2));
 }
 // --------------------------------------------------------------------
 u16 IWRAM_CODE Read_sav_info(u32 offset)
 {
-	return *((vu16 *)(FlashBase_S71+SAVE_info_offset+offset*2));
+	return *((vu16 *)(FlashBase_S98+SAVE_info_offset+offset*2));
 }
 // --------------------------------------------------------------------
 void IWRAM_CODE SetSPIControl(u16  control)
@@ -448,9 +380,11 @@ void IWRAM_CODE SPI_Disable(void)
 u16 IWRAM_CODE Read_FPGA_ver(void)
 {
 	u16 Read_SPI;
+	SetRompage_MODE(0x0000,SYSTEM_MODE_OS);//select flash0
 	SPI_Enable();	
 	Read_SPI =  *(vu16 *)0x9E00000; 
 	SPI_Disable();
+	SetRompage_MODE(0x0040,SYSTEM_MODE_GAME);//select flash0
 	return Read_SPI;
 }
 // --------------------------------------------------------------------
@@ -484,141 +418,119 @@ void IWRAM_CODE Set_RTC_status(u16  status)
 	*(u16 *)0x9fc0000 = 0x1500;
 }
 // --------------------------------------------------------------------
-/*void IWRAM_CODE Set_AUTO_save(u16  mode)
-{
-	*(u16 *)0x9fe0000 = 0xd200;
-	*(u16 *)0x8000000 = 0x1500;
-	*(u16 *)0x8020000 = 0xd200;
-	*(u16 *)0x8040000 = 0x1500;
-	*(u16 *)0x96C0000 = mode;
-	*(u16 *)0x9fc0000 = 0x1500;
-}*/
 // --------------------------------------------------------------------
-void IWRAM_CODE Set_LED_control(u16  status)
-{
-	*(u16 *)0x9fe0000 = 0xd200;
-	*(u16 *)0x8000000 = 0x1500;
-	*(u16 *)0x8020000 = 0xd200;
-	*(u16 *)0x8040000 = 0x1500;
-	*(u16 *)0x96E0000 = status;
-	*(u16 *)0x9fc0000 = 0x1500;
-}
 // --------------------------------------------------------------------
-void IWRAM_CODE Set_64MROM_flag(u16  flag)
+void IWRAM_CODE FW_update(u16 DEcard_FW_readver,u16 FW_built_in_ver,void* FWbinaddress,u32 FWsize,u32 build_crc32,u32 FW_wirte_address)
 {
-	*(u16 *)0x9fe0000 = 0xd200;
-	*(u16 *)0x8000000 = 0x1500;
-	*(u16 *)0x8020000 = 0xd200;
-	*(u16 *)0x8040000 = 0x1500;
-	*(u16 *)0x9700000 = flag;
-	*(u16 *)0x9fc0000 = 0x1500;
-}
-// --------------------------------------------------------------------
-
-// I'm not entirely sure why but i can't update the FPGA firmware in the normal way
-// this function is a terrifying amalgamation of what goes on in the origianl Omega and
-// Omega DE.
-//
-// I really hate this, but i'm not really sure what can be done about it due to lack of
-// firmware ROM space.
-
-void IWRAM_CODE Check_FW_update()
-{
-	ASC_DATA = ASC_DATA_OLD;
 	vu16 busy;
 	vu32 offset;
 	u32 offset_Y = 5;
 	u32 line_x = 17;
 	char msg[100];
-
-	//DEBUG_printf("Current_FW_ver %x ",Current_FW_ver);	
+	
+	//DEBUG_printf("FW_update");
+	//wait_btn();
 	Clear(0, 0, 240, 160, RGB(0,18,24), 1);
 	
-	sprintf(msg,"FIRMWARE UPDATE");
-	DrawHZText12(msg,0,75,offset_Y+0*line_x, 0x7FFF,1);	
+	sprintf(msg,"Rev.Air FIRMWARE UPDATE");
+	DrawHZText12(msg,0,57,offset_Y+0*line_x, 0x7FFF,1);	
 	
-	u16 DEcard_FW_readver = Read_FPGA_ver();
-	u16 DEcard_FW_ver = DEcard_FW_readver & 0x00FF;
-
-	u8 updateFirmware = 0;
-
-	if((DEcard_FW_readver & 0xF000) == 0xB000  || (DEcard_FW_readver & 0xF000) == 0xA000){ //lx16  note that, 0xA000 is initially,fix here
-		if(DEcard_FW_ver < LX16_FW_built_in_ver){
-			updateFirmware = 1;
-			//FW_update(DEcard_FW_readver,LX16_FW_built_in_ver,LX16_newomega_top_bin_address,LX16_newomega_top_bin_size,LX16_FW_crc32,LX16_wirte_address);
-		}
-	}
-	else{//lx9
-		if(DEcard_FW_ver < LX9_FW_built_in_ver){
-			updateFirmware = 1;
-
-			//FW_update(DEcard_FW_readver,LX9_FW_built_in_ver,LX9_newomega_top_bin_address,LX9_newomega_top_bin_size,LX9_FW_crc32,LX9_wirte_address);
-		}
-	}
-
-	if (updateFirmware) {
-		sprintf(msg,"Current firmware version: V%02d",DEcard_FW_readver);
-		DrawHZText12(msg,0,2,offset_Y+1*line_x, 0x7FFF,1);
-
-		sprintf(msg,"Please use the OFFICIAl kernel to");
-		DrawHZText12(msg,0,2,offset_Y+3*line_x, 0x7FFF,1);
-
-		sprintf(msg,"update firmware. Sorry.");
-		DrawHZText12(msg,0,2,offset_Y+4*line_x, 0x7FFF,1);
-
-		sprintf(msg,"Press (B) to skip.");
-		DrawHZText12(msg,0,2,offset_Y+6*line_x, 0x7FFF,1);
-
-		while(1)
-		{
-			VBlankIntrWait();
-
-			scanKeys();
-			u16 keys = keysDown();
-
-			if (keys & KEY_A) {
-				/*
-				SPI_Write_Disable();
-				Clear(2, offset_Y+4*line_x,220,15,RGB(0,18,24),1);
-				Clear(2, offset_Y+5*line_x,220,15,RGB(0,18,24),1);
-
-				sprintf(msg,"Progress:");
-				DrawHZText12(msg,0,2,offset_Y+6*line_x, 0x7FFF,1);
-
-				for(offset = 0x0000;offset<newomega_top_bin_size;offset+=256)
-				{
-
-					sprintf(msg," %lu%%",(offset*100/newomega_top_bin_size+1));
-					Clear(54, offset_Y+6*line_x,120,15,RGB(0,18,24),1);
-					DrawHZText12(msg,0,54,offset_Y+6*line_x, 0x7FFF,1);
-
-					FAT_table_buffer[0] = (0x80000 + offset);//omega DE 0x80000
-
-					dmaCopy(newomega_top_bin_address+offset,&FAT_table_buffer[1],256);
-					Send_FATbuffer(FAT_table_buffer,2);
-
-					SPI_Write_Enable();
-					while(1)
-					{
-						busy = SD_Response();
-						if(busy==0) break;
-					}
-					SPI_Write_Disable();
-					//DEBUG_printf("count %x ",count);
-					//break;
+	u32 get_crc32 = crc32( FWbinaddress, FWsize);
+	//DEBUG_printf("get_crc32 %x ",get_crc32);
+	
+	if(get_crc32 != build_crc32)
+	{
+			sprintf(msg,"check crc32 error! crc32=%x",get_crc32);		
+			DrawHZText12(msg,0,2,offset_Y+1*line_x, RGB(31,00,00),1);
+			sprintf(msg,"press [B] to return");
+			DrawHZText12(msg,0,2,offset_Y+2*line_x, 0x7FFF,1);	
+			while(1)
+			{
+				VBlankIntrWait();	
+				
+				scanKeys();
+				u16 keys = keysDown();
+						
+				if (keys & KEY_B) {
+					return;
 				}
-				sprintf(msg,"Update finished, power off the console.");
-				DrawHZText12(msg,0,2,offset_Y+8*line_x, 0x7FFF,1);
+			}		
+	}
 
-				while(1);
-				break;
-				*/
-			}
-			else if (keys & KEY_B) {
-				break;
-			}
+	sprintf(msg,"Current firmware version: V%02d",DEcard_FW_readver&0xFF);
+	DrawHZText12(msg,0,2,offset_Y+1*line_x, 0x7FFF,1);	
+	
+	sprintf(msg,"Will be updated to version: V%02d",FW_built_in_ver);
+	DrawHZText12(msg,0,2,offset_Y+2*line_x, 0x7FFF,1);	
+
+	sprintf(msg,"Press [A] to update");
+	DrawHZText12(msg,0,2,offset_Y+4*line_x, 0x7FFF,1);	
+	sprintf(msg,"Press [B] to cancel");
+	DrawHZText12(msg,0,2,offset_Y+5*line_x, 0x7FFF,1);	
+	
+	while(1)
+	{
+		VBlankIntrWait();	
+		
+		scanKeys();
+		u16 keys = keysDown();
+				
+		if (keys & KEY_A) {
+			SPI_Write_Disable();
+			Clear(2, offset_Y+4*line_x,220,15,RGB(0,18,24),1);	
+			Clear(2, offset_Y+5*line_x,220,15,RGB(0,18,24),1);	
+		
+			sprintf(msg,"progress:");		
+			DrawHZText12(msg,0,2,offset_Y+6*line_x, 0x7FFF,1);
+									
+			for(offset = 0x0000;offset<FWsize;offset+=256)
+			{
+					
+				sprintf(msg," %lu%%",(offset*100/FWsize+1));
+				Clear(54, offset_Y+6*line_x,120,15,RGB(0,18,24),1);	
+				DrawHZText12(msg,0,54,offset_Y+6*line_x, 0x7FFF,1);	
+				
+				FAT_table_buffer[0] = (FW_wirte_address + offset);//omega DE 0x80000
+				
+				dmaCopy(FWbinaddress+offset,&FAT_table_buffer[1],256);  
+				Send_FATbuffer(FAT_table_buffer,2); 
+								   
+				SPI_Write_Enable();
+				while(1)
+				{
+					busy = SD_Response();
+					if(busy==0) break;
+				}
+				SPI_Write_Disable();
+				//DEBUG_printf("count %x ",count);
+				//break;								
+			}		
+			sprintf(msg,"update finished,power off manual");
+			DrawHZText12(msg,0,2,offset_Y+8*line_x, 0x7FFF,1);	
+			
+			while(1);
+			break;
+		}	
+		else if (keys & KEY_B) {
+			break;
 		}
 	}
+}
+// --------------------------------------------------------------------
+void IWRAM_CODE Check_FW_update(/*u16 Current_FW_ver,u16 Built_in_ver*/)
+{
+	u16 DEair_FW_readver = 2;//Read_FPGA_ver();
+	u16 DEair_FW_ver = DEair_FW_readver & 0x00FF;
+
+	//check FW
+	scanKeys();
+	u16 keys = keysDown();	
+	//
+	//if((DEair_FW_readver & 0xF000) == 0xC000){
+		//if((DEair_FW_ver < LX16_FW_built_in_ver)   /*|| (keys & KEY_L) */ ){
+			FW_update(DEair_FW_readver,LX16_FW_built_in_ver,deair_FW3_bin,deair_FW3_bin_size,LX16_FW_crc32,LX16_wirte_address);
+		//}
+	//}		
 }
 // --------------------------------------------------------------------
 static const u32 crc32tab[] = {

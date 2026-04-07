@@ -21,7 +21,7 @@ u32 gl_cheat_count;
 
 extern u16 gl_select_lang;
 
-//u16 gl_color_chtBG    = RGB(4,8,0xC);
+u16 gl_color_chtBG    = RGB(4,8,0xC);
 //------------------------------------------------------------------
 
 
@@ -739,10 +739,10 @@ u32 Change2cht_folder(u32 chtname)
 	
 	if(gl_select_lang == 0xE1E1)//english
 	{
-		sprintf(currentpath,"/SYSTEM/CHEAT/Eng/%s",folder_name);
+		sprintf(currentpath,"/CHEAT/Eng/%s",folder_name);
 	}
 	else{		
-		sprintf(currentpath,"/SYSTEM/CHEAT/Chn/%s",folder_name);
+		sprintf(currentpath,"/CHEAT/Chn/%s",folder_name);
 	}
 	res=f_chdir(currentpath);		
 	return res;
@@ -772,7 +772,7 @@ u32 Check_cheat_file(TCHAR *gamefilename)
 	chtnamebuf[len-2] = 'h';
 	chtnamebuf[len-1] = 't';	
 	
-	res=f_chdir("/SYSTEM/CHEAT");
+	res=f_chdir("/CHEAT");
 	if(res != FR_OK){
 		return 0;
 	}
@@ -828,7 +828,7 @@ u32 Check_cheat_file(TCHAR *gamefilename)
 void Show_num(u32 totalcount,u32 select)
 {
 	char msg[20];
-	ClearWithBG((u16*)gImage_RECENTLY, 186, 3, 7*6, 15, 1);
+	Clear(186, 3, 7*6, 15, gl_color_chtBG, 1);
 	sprintf(msg,"[%03lu/%03lu]",select,totalcount);
 
 	DrawHZText12(msg,0,182,3, gl_color_text,1);
@@ -844,7 +844,7 @@ void Open_cht_file(TCHAR *gamefilename,u32 havecht)
 		
 	if(havecht == 0x0000FFFF)
 	{
-		res=f_chdir("/SYSTEM/CHEAT");
+		res=f_chdir("/CHEAT");
 		if(res != FR_OK){
 			return;
 		}	
@@ -865,7 +865,8 @@ void Open_cht_file(TCHAR *gamefilename,u32 havecht)
 
 	if(res == FR_OK)//have a cht file
 	{		
-		ClearWithBG((u16*)gImage_RECENTLY, 0, 0, 240, 160, 1);
+		Clear(0, 0, 240, 160, gl_color_chtBG, 1);
+		Clear(0, 18, 240, 1, gl_color_selected, 1);
 
 		Get_KEY_val(&gfile,"GameInfo","Name",buffer);
 		sprintf(msg,"%s ",buffer);
@@ -889,7 +890,7 @@ void Open_cht_file(TCHAR *gamefilename,u32 havecht)
 				{
 					if(re_show>1)
 					{
-						ClearWithBG((u16*)gImage_RECENTLY, 0, 19, 240, 160-19, 1);
+						Clear(0, 19, 240, 160-19, gl_color_chtBG, 1);
 					}
 					Show_KEY_val(all_count,Select,showoffset);
 					Show_num(all_count,Select+showoffset+1);
@@ -1027,7 +1028,7 @@ void Open_cht_file(TCHAR *gamefilename,u32 havecht)
 				{
 					Analyze_KEYVAL(&gfile,all_count);
 					break;
-				}				
+				}		
 			}
 		}
 	}					

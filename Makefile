@@ -22,8 +22,8 @@ include $(DEVKITARM)/gba_rules
 #---------------------------------------------------------------------------------
 TARGET		:= $(notdir $(CURDIR))
 BUILD		:= build
-SOURCES		:= source source/ff15
-INCLUDES	:= include source/ff15 images
+SOURCES		:= source source/ff16
+INCLUDES	:= include source/ff16 images
 DATA		:=
 MUSIC		:=
 
@@ -32,10 +32,8 @@ MUSIC		:=
 #---------------------------------------------------------------------------------
 ARCH	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-g -Wall -O\
+CFLAGS	:=	-g -Wall -Os\
 		-mcpu=arm7tdmi -mtune=arm7tdmi\
- 		-fomit-frame-pointer\
-		-ffast-math \
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE)
@@ -48,7 +46,7 @@ LDFLAGS	=	-g $(ARCH) -Wl,-Map,$(notdir $*.map)
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:= -lmm -lgba
+LIBS	:= -lgba
 
 
 #---------------------------------------------------------------------------------

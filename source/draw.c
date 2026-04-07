@@ -7,6 +7,7 @@
 
 #include "ez_define.h"
 #include "hzk12.h"
+#include "asc126.h"
 #include "ezkernel.h"
 #include "draw.h"
 #include "lang.h"
