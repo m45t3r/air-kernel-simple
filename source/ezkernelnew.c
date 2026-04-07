@@ -2042,10 +2042,14 @@ re_showfile:
 	    	else if(page_num==HELP)//HELP windows
 	    	{
 					DrawPic((u16*)gImage_HELP, 0, 0, 240, 160, 0, 0, 1);
-					Show_help_window();
-					//return L key
-					DrawPic((u16*)gImage_SET, 0, 0, 240, 160, 0, 0, 1);
-					page_num = SET_win;//
+					if(Show_help_window() == 0){
+						DrawPic((u16*)gImage_SET, 0, 0, 240, 160, 0, 0, 1);
+						page_num = SET_win;
+					}
+					else{
+						DrawPic((u16*)gImage_NOR, 0, 0, 240, 160, 0, 0, 1);
+						page_num = NOR_list;
+					}
 					goto re_showfile;
 	    	}
 	    	else
@@ -2172,8 +2176,12 @@ re_showfile:
 			else if(keys_released & KEY_L)
 			{
 				key_L = 0;
-				if(page_num==NOR_list){continue;}
-				page_num --;
+				if(page_num==NOR_list){
+					page_num = HELP;
+				}
+				else{
+					page_num --;
+				}
 				
 				shift = 0;
 				goto refind_file;						
@@ -2182,8 +2190,12 @@ re_showfile:
 			}
 			else if(keys_released/*keysdown*/ & KEY_R)
 			{			
-	      if(page_num==HELP){continue;}
-				page_num ++;
+	      if(page_num==HELP){
+					page_num = NOR_list;
+				}
+				else{
+					page_num ++;
+				}
 				//if(page_num==NOR_list)DrawPic((u16*)gImage_NOR, 0, 0, 240, 160, 0, 0, 1);
 				updata=1;
 				folder_select=0;

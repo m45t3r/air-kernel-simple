@@ -26,7 +26,7 @@ void Show_ver(void)
 	Rev = FPGAver & 0xF000;
 }
 //---------------------------------------------------------------------------------
-void Show_help_window()
+u32 Show_help_window()
 {
 	char msg[20];
 	
@@ -65,7 +65,10 @@ void Show_help_window()
 		scanKeys();
 		u16 keys = keysUp();
 		if (keys & KEY_L) {//return
-			return;
+			return 0;
+		}
+		if (keys & KEY_R) {
+			return 1;
 		}
 	}
 }
