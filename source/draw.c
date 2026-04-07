@@ -7,7 +7,7 @@
 
 #include "ez_define.h"
 #include "hzk12.h"
-#include "asc126.h"
+#include "asc126_new.h"
 #include "ezkernel.h"
 #include "draw.h"
 #include "lang.h"
@@ -119,7 +119,7 @@ void DrawHZText12(char *str, u16 len, u16 x, u16 y, u16 c, u8 isDrawDirect)
     		location = c1*12;
     		for(i=0;i<12;i++)
 			{
-				cc = ASC_DATA[location+i];
+				cc = ASC_DATA_NEW[location+i];
 				if(cc & 0x01)
 					v[x+7+yy]=c;
 				if(cc & 0x02)
