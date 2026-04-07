@@ -2306,7 +2306,6 @@ void Boot_NOR_game(u32 show_offset,	u32 file_select,u32 key_L)
 	u8 is_EMU;
 	
 	Clear(0, 0, 240, 160, gl_color_cheat_black, 1);
-	DrawHZText12(gl_Loading,0,(240-strlen(gl_Loading)*6)/2,74, gl_color_text,1);
 
 	init_FAT_table();		
 	
@@ -2681,7 +2680,6 @@ re_show_menu:
 	}	//3
 
 	Clear(0, 0, 240, 160, gl_color_cheat_black, 1);
-	DrawHZText12(gl_Loading,0,(240-strlen(gl_Loading)*6)/2,74, gl_color_text,1);
 
 	u32 gamefilesize=0;
 	//u32 savefilesize=0;		
