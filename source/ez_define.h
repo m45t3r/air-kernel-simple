@@ -82,14 +82,6 @@
 #define assress_saveMODE 64
 #define assress_max 65
 
-
-#define LX16_FW_built_in_ver 3
-
-#define LX16_newomega_top_bin_address (void*)0x08195000
-#define LX16_newomega_top_bin_size  0x716A0
-#define LX16_wirte_address 0x100000
-#define LX16_FW_crc32 0x0BE63A59
-
 extern const unsigned char gImage_Chinese_manual[9800] __attribute__((aligned(4)));
 extern const unsigned char gImage_English_manual[9800] __attribute__((aligned(4)));
 extern const unsigned char gImage_splash[76800] __attribute__((aligned(4)));
