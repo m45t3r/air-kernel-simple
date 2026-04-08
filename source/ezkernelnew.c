@@ -524,7 +524,6 @@ void Show_ICON_filename_NOR(u32 show_offset,u32 file_select)
 	u16 name_color = gl_color_text;	
 	u32 y_offset= 20;	
 	u32 char_num=32;
-	u32 filesize;
 	
 	
 	if(game_total_NOR<10)
@@ -550,7 +549,7 @@ void Show_ICON_filename_NOR(u32 show_offset,u32 file_select)
 		DrawHZText12(pNorFS[show_offset+line].filename, char_num, 1+16, y_offset + line*14, name_color,1);
 		
 				
-		filesize = Get_file_size_NOR(show_offset, line,msg);		
+		Get_file_size_NOR(show_offset, line,msg);		
 		DrawHZText12(msg,0,208,y_offset + line*14, name_color,1);
 
 	}
@@ -567,7 +566,6 @@ void Refresh_filename_NOR(u32 show_offset,u32 file_select,u32 updown)
 	u32 y_offset= 20;
 	u32 char_num;
 	u32 clean_len;
-	u32 filesize;
 	
 	char_num = 32;
 	clean_len = 240-17;
@@ -596,12 +594,12 @@ void Refresh_filename_NOR(u32 show_offset,u32 file_select,u32 updown)
 	DrawHZText12(pNorFS[show_offset+xx1].filename, char_num, 1+16, showy1, name_color1,1);
 	DrawHZText12(pNorFS[show_offset+xx2].filename, char_num, 1+16, showy2, name_color1,1);
 
-	filesize = Get_file_size_NOR(show_offset,xx1,msg);		
+	Get_file_size_NOR(show_offset,xx1,msg);		
 	//sprintf(msg,"%4luM",filesize );
 	//sprintf(msg,"%4luM",(pNorFS[show_offset+xx1].filesize) >>20 );
 	DrawHZText12(msg,0,208,showy1, name_color1,1);
 	
-	filesize = Get_file_size_NOR(show_offset,xx2,msg);		
+	Get_file_size_NOR(show_offset,xx2,msg);		
 	//sprintf(msg,"%4luM",filesize );
 	//sprintf(msg,"%4luM",(pNorFS[show_offset+xx2].filesize) >>20 );
 	DrawHZText12(msg,0,208,showy2, name_color1,1);
@@ -621,7 +619,7 @@ void Show_game_num(u32 count,u32 page_num)
 void Show_free_space(void)
 {
 	char msg[20];
-	sprintf(msg,"[%s%dM]",gl_free,(0x8000000-gl_norOffset)/0x100000);
+	sprintf(msg,"[%s%luM]",gl_free,(0x8000000-gl_norOffset)/0x100000);
 	DrawHZText12(msg,0,175,3, gl_color_text,1);	
 }
 //---------------------------------------------------------------------------------
@@ -1245,8 +1243,6 @@ u32 IWRAM_CODE Dump_NOR_file(TCHAR *filename,u32 address,u32 dumpsize)
 	{
 		case FR_OK:
 		{
-			int i;
-			
 			for(blocknum=0x0000;blocknum</*dumpsize*/0x800000;blocknum+=0x20000)
 			{		
 				{
@@ -1342,12 +1338,8 @@ u32 IWRAM_CODE LoadEMU2NOR(TCHAR *filename, u32 NORaddress,u32 is_EMU)
 	u32 blocknum;
 	char msg[20];
 	
-	u32 Address;
-	vu16 page=0;
-	//SetPSRampage(page);
 	u32 readsize;
 	FM_NOR_FS tmpNorFS ;
-	char temp[50];
 	
 	u32 fileneedsize;
 	
@@ -2240,12 +2232,12 @@ re_showfile:
 			{
 				if(page_num==SD_list){
 					//res = f_getcwd(currentpath, sizeof currentpath / sizeof *currentpath);		
-		      if( show_offset+file_select <  folder_total)
+		    if( show_offset+file_select <  folder_total)
 		      {	   				
 	   				if(strcmp(currentpath,"/") !=0){	
-	   					sprintf(currentpath,"%s%s",currentpath,"/");
+	   					strncat(currentpath,"/",MAX_path_len - strlen(currentpath) - 1);
 						}
-		      	sprintf(currentpath,"%s%s",currentpath,pFolder[show_offset+file_select].filename);
+		      	strncat(currentpath,pFolder[show_offset+file_select].filename,MAX_path_len - strlen(currentpath) - 1);
 		      	
 						res=f_chdir(currentpath);
 						if(res != FR_OK){

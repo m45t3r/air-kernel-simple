@@ -25,7 +25,7 @@ void IWRAM_CODE Read_NORgame_info();
 u16 IWRAM_CODE Read_SET_info(u32 offset);
 u32 Loadfile2PSRAM(TCHAR *filename);
 u16 IWRAM_CODE Read_FPGA_ver(void);
-u32 crc32(unsigned char *buf, u32 size);
+u32 crc32(const unsigned char *buf, u32 size);
 void IWRAM_CODE Set_RTC_status(u16  status);
 void IWRAM_CODE Set_LED_control(u16  status);
 u16 IWRAM_CODE Read_sav_info(u32 offset);
