@@ -20,8 +20,19 @@ include $(DEVKITARM)/gba_rules
 # the makefile is found
 #
 #---------------------------------------------------------------------------------
+THEME		?= dark
+
+ifeq ($(THEME),dark)
 TARGET		:= ezairkernel
-BUILD		:= build
+BUILD		:= build-dark
+THEME_CFLAGS	:= -DDARK
+else ifeq ($(THEME),light)
+TARGET		:= ezairkernel-light
+BUILD		:= build-light
+THEME_CFLAGS	:=
+else
+$(error "Unknown THEME '$(THEME)'. Use THEME=dark or THEME=light")
+endif
 SOURCES		:= source source/ff16
 INCLUDES	:= include source/ff16 images
 DATA		:=
@@ -37,6 +48,7 @@ CFLAGS	:=	-g -Wall -Os\
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE)
+CFLAGS	+=	$(THEME_CFLAGS)
 
 CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions
 
@@ -109,8 +121,17 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-iquote $(CURDIR)/$(dir)) \
 					-I$(CURDIR)/$(BUILD)
 
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
+export THEME
 
-.PHONY: $(BUILD) clean
+.PHONY: all $(BUILD) clean light dark
+
+all: $(BUILD)
+
+light:
+	@$(MAKE) all THEME=light
+
+dark:
+	@$(MAKE) all THEME=dark
 
 #---------------------------------------------------------------------------------
 $(BUILD):
@@ -120,7 +141,7 @@ $(BUILD):
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).gba
+	@rm -fr build build-dark build-light ezairkernel.elf ezairkernel.gba ezairkernel-light.elf ezairkernel-light.gba
 
 
 #---------------------------------------------------------------------------------

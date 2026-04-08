@@ -104,10 +104,11 @@ _**ALSO YOU MUST USE THE OFFICIAL KERNEL TO UPDATE THE FIRMWARE; THIS DOES NOT A
 ### How to build 
 1. Install [devkitPro](https://devkitpro.org/)
 2. Set the following environment variables to their correct directories: `DEVKITPRO, DEVKITARM, LIBGBA`
-3. Comment or uncomment the `#define DARK` line in `draw.h`. If uncommented, a dark theme is generated.
-4. Run the command `make`. If done successfully, this should give you an `ezkernel.bin` file.
-5. Follow the installation instructions above.
-4. Update your flashcart and enjoy! :)
+3. Run `make` for the dark theme, or `make light` for the light theme.
+4. You can also build explicitly with `make THEME=dark` or `make THEME=light`.
+5. If done successfully, this gives you `ezairkernel.gba` for dark or `ezairkernel-light.gba` for light.
+6. Follow the installation instructions above.
+7. Update your flashcart and enjoy! :)
 
 ### Special Greetz & Contributors:
 Sasq\

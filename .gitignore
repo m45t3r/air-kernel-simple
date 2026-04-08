@@ -1,7 +1,9 @@
 emusrc/build
+build
 *.gba
 *.elf
-build
+build-dark
+build-light
 *.bin
 *.sav
 source/lang.c.bak
